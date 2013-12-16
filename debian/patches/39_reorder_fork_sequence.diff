@@ -1,7 +1,5 @@
-Index: xrdp-bartw72/sesman/session.c
-===================================================================
---- xrdp-bartw72.orig/sesman/session.c	2013-12-06 09:22:50.045294268 +0100
-+++ xrdp-bartw72/sesman/session.c	2013-12-06 09:26:32.445849279 +0100
+--- a/sesman/session.c
++++ b/sesman/session.c
 @@ -459,185 +459,185 @@
          g_sprintf(geometry, "%dx%d", width, height);
          g_sprintf(depth, "%d", bpp);

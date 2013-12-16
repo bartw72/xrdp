@@ -67,25 +67,25 @@ Index: xrdp-bartw72/xorg/X11R7.6/rdp/Makefile
 +        -lXdmcp -lpixman-1 -lrt -ldl -lcrypto -lGL -lXdamage -lgcrypt -lpthread
  
  CFLAGS = -O2 -Wall -fno-strength-reduce \
-+	-march=native -g \
++    -march=native -g \
  	-I../../include \
  	-I../../cfb \
  	-I../../mfb \
  	-I../../mi \
-+	-I$(XSRCBASE)/include \
-+	-I$(XSRCBASE)/Xext \
-+	-I$(XSRCBASE)/mi \
-+	-I$(XSRCBASE)/render \
-+	-I$(XSRCBASE)/randr \
-+	-I$(XSRCBASE)/fb \
-+	-I/usr/include/pixman-1 \
++    -I$(XSRCBASE)/include \
++    -I$(XSRCBASE)/Xext \
++    -I$(XSRCBASE)/mi \
++    -I$(XSRCBASE)/render \
++    -I$(XSRCBASE)/randr \
++    -I$(XSRCBASE)/fb \
++    -I/usr/include/pixman-1 \
  	-I$(INCBASE) \
  	-I$(INCBASE)/X11 \
  	-I$(INCBASE)/X11/fonts \
  	-I$(INCBASE)/X11/extensions \
  	-I$(INCBASE)/xorg \
  	-I$(INCBASE)/pixman-1 \
-+	-I../xrdp/common \
++    -I../xrdp/common \
  	-I../../os \
  	-I../../render \
  	-I../xfree86/common \
@@ -94,8 +94,8 @@ Index: xrdp-bartw72/xorg/X11R7.6/rdp/Makefile
  	-DXCMISC -DXTEST -DXTRAP -DXV -DXSYNC -DMITMISC -DPANORAMIX \
  	-DDPMSExtension -DXvExtension -DXvMCExtension -DXResExtension \
 -	-DMITSHM -DPIXPRIV -DNDEBUG -DDDXOSINIT -DXKB -DXINPUT
-+	-DMITSHM -DPIXPRIV -DNDEBUG -DDDXOSINIT -DXKB -DXINPUT \
-+	-DHAVE_STRNDUP -DSECURITY -DCOMPOSITE
++    -DMITSHM -DPIXPRIV -DNDEBUG -DDDXOSINIT -DXKB -DXINPUT \
++    -DHAVE_STRNDUP -DSECURITY -DCOMPOSITE
  
  #-DDAMAGE
  

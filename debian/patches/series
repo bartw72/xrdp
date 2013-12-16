@@ -1,6 +1,7 @@
 01-quiet_start.patch
 #02-unix-socks-in-var-run.patch
 03-default-keymap.patch
+04_add_lock_on_add.diff
 20-startup-messages.patch
 #21-xserver-1.12.4.patch
 21-xserver-1.14.3.patch

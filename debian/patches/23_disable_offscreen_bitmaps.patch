@@ -1,7 +1,5 @@
-Index: xrdp-bartw72/libxrdp/xrdp_rdp.c
-===================================================================
---- xrdp-bartw72.orig/libxrdp/xrdp_rdp.c	2013-09-21 19:27:15.380109903 +0200
-+++ xrdp-bartw72/libxrdp/xrdp_rdp.c	2013-09-21 19:27:15.376109748 +0200
+--- a/libxrdp/xrdp_rdp.c
++++ b/libxrdp/xrdp_rdp.c
 @@ -1246,7 +1246,7 @@
                  break;
              case 17: /* 17 */

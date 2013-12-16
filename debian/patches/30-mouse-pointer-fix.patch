@@ -1,7 +1,5 @@
-Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdp.h
-===================================================================
---- xrdp-bartw72.orig/xorg/X11R7.6/rdp/rdp.h	2013-11-23 14:50:18.585216610 +0100
-+++ xrdp-bartw72/xorg/X11R7.6/rdp/rdp.h	2013-11-23 14:50:18.577216634 +0100
+--- a/xorg/X11R7.6/rdp/rdp.h
++++ b/xorg/X11R7.6/rdp/rdp.h
 @@ -47,7 +47,7 @@
  
  //#include "cfb.h"
@@ -20,10 +18,8 @@ Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdp.h
  rdpSpriteSetCursor(DeviceIntPtr pDev, ScreenPtr pScr, CursorPtr pCurs,
                     int x, int y);
  void
-Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdpinput.c
-===================================================================
---- xrdp-bartw72.orig/xorg/X11R7.6/rdp/rdpinput.c	2013-11-23 14:50:18.585216610 +0100
-+++ xrdp-bartw72/xorg/X11R7.6/rdp/rdpinput.c	2013-11-23 14:51:16.537045011 +0100
+--- a/xorg/X11R7.6/rdp/rdpinput.c
++++ b/xorg/X11R7.6/rdp/rdpinput.c
 @@ -37,6 +37,7 @@
  /* this should be fixed in rdesktop */
  
@@ -489,10 +485,8 @@ Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdpinput.c
      valuator_mask_set_double(mask, 0, x);
      valuator_mask_set_double(mask, 1, y);
  
-Index: xrdp-bartw72/common/xrdp_client_info.h
-===================================================================
---- xrdp-bartw72.orig/common/xrdp_client_info.h	2013-11-23 14:50:18.585216610 +0100
-+++ xrdp-bartw72/common/xrdp_client_info.h	2013-11-23 14:50:18.581216622 +0100
+--- a/common/xrdp_client_info.h
++++ b/common/xrdp_client_info.h
 @@ -93,6 +93,7 @@
    int pointer_flags; /* 0 color, 1 new, 2 no new */
    int use_fast_path;
@@ -501,10 +495,8 @@ Index: xrdp-bartw72/common/xrdp_client_info.h
  };
  
  #endif
-Index: xrdp-bartw72/libxrdp/xrdp_rdp.c
-===================================================================
---- xrdp-bartw72.orig/libxrdp/xrdp_rdp.c	2013-11-23 14:50:18.585216610 +0100
-+++ xrdp-bartw72/libxrdp/xrdp_rdp.c	2013-11-23 14:50:18.581216622 +0100
+--- a/libxrdp/xrdp_rdp.c
++++ b/libxrdp/xrdp_rdp.c
 @@ -98,6 +98,15 @@
          {
              client_info->use_bulk_comp = text2bool(value);
@@ -521,10 +513,8 @@ Index: xrdp-bartw72/libxrdp/xrdp_rdp.c
          else if (g_strcasecmp(item, "crypt_level") == 0)
          {
              if (g_strcasecmp(value, "low") == 0)
-Index: xrdp-bartw72/xorg/X11R7.6/rdp/cursors.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ xrdp-bartw72/xorg/X11R7.6/rdp/cursors.h	2013-11-23 14:50:18.581216622 +0100
+--- /dev/null
++++ b/xorg/X11R7.6/rdp/cursors.h
 @@ -0,0 +1,1057 @@
 +
 +#ifndef _CURSORS_H
@@ -1583,10 +1573,8 @@ Index: xrdp-bartw72/xorg/X11R7.6/rdp/cursors.h
 +"                        ";
 +
 +#endif
-Index: xrdp-bartw72/xrdp/xrdp.ini
-===================================================================
---- xrdp-bartw72.orig/xrdp/xrdp.ini	2013-11-23 14:50:18.585216610 +0100
-+++ xrdp-bartw72/xrdp/xrdp.ini	2013-11-23 14:50:18.581216622 +0100
+--- a/xrdp/xrdp.ini
++++ b/xrdp/xrdp.ini
 @@ -29,6 +29,7 @@
  # require_credentials=yes
  

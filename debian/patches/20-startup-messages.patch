@@ -1,8 +1,6 @@
-Index: xrdp-bartw72/common/os_calls.c
-===================================================================
---- xrdp-bartw72.orig/common/os_calls.c	2013-05-20 11:43:05.687610671 +0200
-+++ xrdp-bartw72/common/os_calls.c	2013-05-20 11:43:05.683610671 +0200
-@@ -574,8 +574,20 @@
+--- a/common/os_calls.c
++++ b/common/os_calls.c
+@@ -574,7 +574,19 @@
                  {
                      break; /* Success */
                  }
@@ -10,16 +8,15 @@ Index: xrdp-bartw72/common/os_calls.c
 +                {
 +                    g_writeln("Host address list empty.");
 +                }
-+            }
+             }
 +            else
 +            {
 +                g_writeln("Host name not solved.");
-             }
-         }
++            }
++        }
 +        else
 +        {
 +            g_writeln("Hostname not found.");
-+	}
+         }
      }
      return res;
- }

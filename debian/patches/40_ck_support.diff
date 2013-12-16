@@ -201,17 +201,17 @@
 +                environment[0].value = g_getenv("XDG_SESSION_COOKIE");
 +                environment[1].key = "GDMSESSION";
 +                environment[1].value = "FAKE_SESSION";
-+
-+                wmpid = g_fork();
  
 -                if (x_server_running(display))
++                wmpid = g_fork();
++
 +                if (wmpid == -1)
-                 {
++                {
 +                    log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 +                        " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 +                }
 +                else if (wmpid == 0) /* child */
-+                {
+                 {
 +                    log_message(LOG_LEVEL_DEBUG, "Forked the process for running windowmanager for pid %s", username);
 +
 +                    env_set_user(username, 0, display, environment, 2);
@@ -256,7 +256,7 @@
                      g_execlp3("xterm", "xterm", 0);
  
                      /* should not get here */
-@@ -630,61 +754,63 @@
+@@ -630,67 +754,63 @@
                      log_message(LOG_LEVEL_DEBUG, "errno: %d, description: "
                                  "%s", errno, g_get_strerror());
                  }
@@ -279,15 +279,15 @@
 -            else /* parent (child sesman)*/
 +            else
              {
--				wait_for_xserver(display);
+-                wait_for_xserver(display);
 -                if (x_server_running(display))
 -                {
--					g_snprintf(text, 255, "%d", display);
--					g_setenv("XRDP_SESSVC_DISPLAY", text, 1);
--					g_snprintf(text, 255, ":%d.0", display);
--					g_setenv("DISPLAY", text, 1);
--					/* new style waiting for clients */
--					session_start_sessvc(xpid, wmpid, data, username, display);
+-                    g_snprintf(text, 255, "%d", display);
+-                    g_setenv("XRDP_SESSVC_DISPLAY", text, 1);
+-                    g_snprintf(text, 255, ":%d.0", display);
+-                    g_setenv("DISPLAY", text, 1);
+-                    /* new style waiting for clients */
+-                    session_start_sessvc(xpid, wmpid, data, username, display);
 -                }
 +                 log_message(LOG_LEVEL_ERROR, "another Xserver might "
 +                             "already be active on display %d - see log", display);
@@ -296,34 +296,40 @@
      }
      else /* parent sesman process */
      {
--		wait_for_xserver(display);
+-        wait_for_xserver(display);
 -        if (x_server_running(display))
 -        {
--			temp->item->pid = pid;
--			temp->item->display = display;
--			temp->item->width = width;
--			temp->item->height = height;
--			temp->item->bpp = bpp;
--			temp->item->data = data;
--			g_strncpy(temp->item->client_ip, client_ip, 255);   /* store client ip data */
--			g_strncpy(temp->item->name, username, 255);
+-            temp->item->pid = pid;
+-            temp->item->display = display;
+-            temp->item->width = width;
+-            temp->item->height = height;
+-            temp->item->bpp = bpp;
+-            temp->item->data = data;
+-            g_strncpy(temp->item->client_ip, client_ip, 255);   /* store client ip data */
+-            g_strncpy(temp->item->name, username, 255);
 -
--			ltime = g_time1();
--			localtime_r(&ltime, &stime);
--			temp->item->connect_time.year = (tui16)(stime.tm_year + 1900);
--			temp->item->connect_time.month = (tui8)stime.tm_mon;
--			temp->item->connect_time.day = (tui8)stime.tm_mday;
--			temp->item->connect_time.hour = (tui8)stime.tm_hour;
--			temp->item->connect_time.minute = (tui8)stime.tm_min;
--			zero_time(&(temp->item->disconnect_time));
--			zero_time(&(temp->item->idle_time));
+-            ltime = g_time1();
+-            localtime_r(&ltime, &stime);
+-            temp->item->connect_time.year = (tui16)(stime.tm_year + 1900);
+-            temp->item->connect_time.month = (tui8)stime.tm_mon;
+-            temp->item->connect_time.day = (tui8)stime.tm_mday;
+-            temp->item->connect_time.hour = (tui8)stime.tm_hour;
+-            temp->item->connect_time.minute = (tui8)stime.tm_min;
+-            zero_time(&(temp->item->disconnect_time));
+-            zero_time(&(temp->item->idle_time));
 -
--			temp->item->type = type;
--			temp->item->status = SESMAN_SESSION_STATUS_ACTIVE;
+-            temp->item->type = type;
+-            temp->item->status = SESMAN_SESSION_STATUS_ACTIVE;
 -
--			temp->next = g_sessions;
--			g_sessions = temp;
--			g_session_count++;
+-            /*THREAD-FIX require chain lock */
+-            lock_chain_acquire();
+-
+-            temp->next = g_sessions;
+-            g_sessions = temp;
+-            g_session_count++;
+-
+-            /*THREAD-FIX release chain lock */
+-            lock_chain_release();
 -        }
 +        temp->item->pid = pid;
 +        temp->item->display = display;
@@ -363,7 +369,7 @@
      }
  
      return display;
-@@ -707,14 +833,17 @@
+@@ -713,14 +833,17 @@
      }
      else if (pid == 0)
      {
@@ -382,7 +388,7 @@
          g_exit(0);
      }
  
-@@ -839,6 +968,8 @@
+@@ -845,6 +968,8 @@
  
          if (tmp->item->pid == pid)
          {
@@ -520,6 +526,6 @@
  #%PAM-1.0
  @include common-auth
  @include common-account
-+session	optional			pam_ck_connector.so
++session    optional            pam_ck_connector.so
  @include common-session
  @include common-password

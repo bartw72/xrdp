@@ -13,9 +13,9 @@
 +                sleep 3
 +                rm -rf /tmp/.xrdp
 +        fi
-+	if [ -d /tmp/.X11-unix ] ; then
-+		rm -f /tmp/.X11-unix/X??
-+	fi
++        if [ -d /tmp/.X11-unix ] ; then
++            rm -f /tmp/.X11-unix/X??
++        fi
          log_end_msg $exitval
  	;;
    force-stop)
