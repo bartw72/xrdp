@@ -24,7 +24,7 @@
      list_add_item(sessvc_params, 0); /* mandatory */
  
 -    env_set_user(username, 0, display);
-+    log_message(LOG_LEVEL_DEBUG, "Changing process to user %s", username);
++    log_message(LOG_LEVEL_DEBUG, "Changing sessvc process to user %s", username);
 +
 +    env_set_user(username, 0, display, environment, envsize);
 +
@@ -515,12 +515,3 @@
 +env_set_user(char* username, char* passwd_file, int display, environment_item environ[], int envsize);
  
  #endif
---- a/instfiles/pam.d/xrdp-sesman
-+++ b/instfiles/pam.d/xrdp-sesman
-@@ -1,5 +1,6 @@
- #%PAM-1.0
- @include common-auth
- @include common-account
-+session    optional            pam_ck_connector.so
- @include common-session
- @include common-password
