@@ -1,8 +1,9 @@
 xrdp (0.7.0-1.13) UNRELEASED; urgency=medium
 
   * Add logging in reconnect flow
+  * Reorder reconnect flow to avoid needless fork
 
- -- Warmerdam, B. (Bart) <Bart.Warmerdam@mail.ing.nl>  Mon, 16 Dec 2013 11:39:47 +0100
+ -- Warmerdam, B. (Bart) <Bart.Warmerdam@mail.ing.nl>  Mon, 16 Dec 2013 15:44:52 +0100
 
 xrdp (0.7.0-1.12) ingunstable; urgency=low
 
