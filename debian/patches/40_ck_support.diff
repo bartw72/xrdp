@@ -154,7 +154,7 @@
          log_message(LOG_LEVEL_ERROR, "cannot fork process for wm and x"
                      " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
      }
-@@ -468,9 +572,13 @@
+@@ -469,9 +573,13 @@
          }
          else if (xpid == 0) /* child (child sesman) xserver */
          {
@@ -169,7 +169,7 @@
              if (type == SESMAN_SESSION_TYPE_XVNC)
              {
                  xserver_params = list_create();
-@@ -487,7 +595,7 @@
+@@ -488,7 +596,7 @@
  
                  /* additional parameters from sesman.ini file */
                  //config_read_xserver_params(SESMAN_SESSION_TYPE_XVNC,
@@ -178,21 +178,21 @@
                  list_append_list_strdup(g_cfg->vnc_params, xserver_params, 0);
  
                  /* make sure it ends with a zero */
-@@ -547,22 +655,32 @@
+@@ -548,22 +656,32 @@
          }
          else /* parent (child sesman) */
          {
 -            wmpid = g_fork();
 -
 -            if (wmpid == -1)
-+            wait_for_xserver(display);
-+            if (x_server_running(display))
-             {
+-            {
 -                log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 -                    " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 -            }
 -            else if (wmpid == 0) /* child */
--            {
++            wait_for_xserver(display);
++            if (x_server_running(display))
+             {
 -                wait_for_xserver(display);
 -                env_set_user(username, 0, display);
 +//                ck_start_session(ck, username, display, client_ip);
@@ -201,17 +201,17 @@
 +                environment[0].value = g_getenv("XDG_SESSION_COOKIE");
 +                environment[1].key = "GDMSESSION";
 +                environment[1].value = "FAKE_SESSION";
++
++                wmpid = g_fork();
  
 -                if (x_server_running(display))
-+                wmpid = g_fork();
-+
 +                if (wmpid == -1)
-+                {
+                 {
 +                    log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 +                        " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 +                }
 +                else if (wmpid == 0) /* child */
-                 {
++                {
 +                    log_message(LOG_LEVEL_DEBUG, "Forked the process for running windowmanager for pid %s", username);
 +
 +                    env_set_user(username, 0, display, environment, 2);
@@ -222,7 +222,7 @@
                      if (directory != 0)
                      {
                          if (directory[0] != 0)
-@@ -575,6 +693,8 @@
+@@ -576,6 +694,8 @@
                      {
                          if (program[0] != 0)
                          {
@@ -231,7 +231,7 @@
                              g_execlp3(program, program, 0);
                              log_message(LOG_LEVEL_ALWAYS,
                                          "error starting program %s for user %s - pid %d",
-@@ -589,6 +709,7 @@
+@@ -590,6 +710,7 @@
  
                          if (g_file_exist(text))
                          {
@@ -239,7 +239,7 @@
                              g_execlp3(text, g_cfg->user_wm, 0);
                              log_message(LOG_LEVEL_ALWAYS, "error starting user "
                                          "wm for user %s - pid %d", username, g_getpid());
-@@ -607,6 +728,8 @@
+@@ -608,6 +729,8 @@
                      /* if we're here something happened to g_execlp3
                         so we try running the default window manager */
                      g_sprintf(text, "%s/%s", XRDP_CFG_PATH, g_cfg->default_wm);
@@ -248,7 +248,7 @@
                      g_execlp3(text, g_cfg->default_wm, 0);
  
                      log_message( LOG_LEVEL_ALWAYS, "error starting default "
-@@ -621,6 +744,7 @@
+@@ -622,6 +745,7 @@
                                  g_cfg->default_wm);
  
                      /* still a problem starting window manager just start xterm */
@@ -256,7 +256,7 @@
                      g_execlp3("xterm", "xterm", 0);
  
                      /* should not get here */
-@@ -630,67 +754,63 @@
+@@ -631,67 +755,63 @@
                      log_message(LOG_LEVEL_DEBUG, "errno: %d, description: "
                                  "%s", errno, g_get_strerror());
                  }
@@ -369,26 +369,21 @@
      }
  
      return display;
-@@ -713,14 +833,17 @@
-     }
-     else if (pid == 0)
-     {
--        env_set_user(username, 0, display);
-+        env_set_user(username, 0, display, NULL, 0);
-         g_snprintf(text, 255, "%s/%s", XRDP_CFG_PATH, "reconnectwm.sh");
- 
-         if (g_file_exist(text))
+@@ -717,7 +837,12 @@
+         }
+         else if (pid == 0)
          {
+-            env_set_user(username, 0, display);
++            log_message(LOG_LEVEL_DEBUG, "Change forked process to user %s", username);
++
++            env_set_user(username, 0, display, NULL, 0);
++
 +            log_message(LOG_LEVEL_DEBUG, "Reconnect to windowmanager process %s as user %s", text, username);
 +
              g_execlp3(text, g_cfg->default_wm, 0);
+             g_exit(0);
          }
- 
-+        log_message(LOG_LEVEL_DEBUG, "Reconnection to %s failed.", text);
-         g_exit(0);
-     }
- 
-@@ -845,6 +968,8 @@
+@@ -848,6 +973,8 @@
  
          if (tmp->item->pid == pid)
          {

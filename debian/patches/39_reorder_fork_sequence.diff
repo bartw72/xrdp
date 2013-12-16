@@ -1,9 +1,9 @@
 --- a/sesman/session.c
 +++ b/sesman/session.c
-@@ -459,185 +459,185 @@
-         g_sprintf(geometry, "%dx%d", width, height);
+@@ -460,185 +460,185 @@
          g_sprintf(depth, "%d", bpp);
          g_sprintf(screen, ":%d", display);
+         g_sleep(100);     // wait a little time to allow the display chain to be filled in parent thread
 -        wmpid = g_fork();
 +        xpid = g_fork();
  
@@ -146,8 +146,10 @@
 +                log_message(LOG_LEVEL_ALWAYS, "bad session type - "
 +                            "user %s - pid %d", username, g_getpid());
 +                g_exit(1);
-+            }
-+
+             }
+ 
+-            log_message(LOG_LEVEL_DEBUG, "aborting connection...");
+-            g_exit(0);
 +            /* should not get here */
 +            log_message(LOG_LEVEL_ALWAYS, "error starting X server "
 +                        "- user %s - pid %d", username, g_getpid());
@@ -162,10 +164,8 @@
 +            {
 +                log_message(LOG_LEVEL_DEBUG, "        argv[%d] = %s",
 +                            i, (char *)list_get_item(xserver_params, i));
-             }
- 
--            log_message(LOG_LEVEL_DEBUG, "aborting connection...");
--            g_exit(0);
++            }
++
 +            list_delete(xserver_params);
 +            g_exit(1);
          }
@@ -190,8 +190,7 @@
 +                env_set_user(username, 0, display);
  
 -                if (type == SESMAN_SESSION_TYPE_XVNC)
-+                if (x_server_running(display))
-                 {
+-                {
 -                    xserver_params = list_create();
 -                    xserver_params->auto_free = 1;
 -                    /* these are the must have parameters */
@@ -239,7 +238,8 @@
 -                    g_execvp("X11rdp", pp1);
 -                }
 -                else
--                {
++                if (x_server_running(display))
+                 {
 -                    log_message(LOG_LEVEL_ALWAYS, "bad session type - "
 -                                "user %s - pid %d", username, g_getpid());
 -                    g_exit(1);
@@ -338,3 +338,43 @@
              }
              else /* parent (child sesman)*/
              {
+@@ -705,24 +705,26 @@
+     int pid;
+     char text[256];
+ 
+-    pid = g_fork();
+-
+-    if (pid == -1)
++    g_snprintf(text, 255, "%s/%s", XRDP_CFG_PATH, "reconnectwm.sh");
++    if (g_file_exist(text))
+     {
+-        log_message(LOG_LEVEL_ERROR, "cannot create new chain "
+-                    "element - display %d, user %s", display, username);
+-    }
+-    else if (pid == 0)
+-    {
+-        env_set_user(username, 0, display);
+-        g_snprintf(text, 255, "%s/%s", XRDP_CFG_PATH, "reconnectwm.sh");
++        pid = g_fork();
+ 
+-        if (g_file_exist(text))
++        if (pid == -1)
++        {
++            log_message(LOG_LEVEL_ERROR, "cannot create new chain "
++                    "element - display %d, user %s", display, username);
++        }
++        else if (pid == 0)
+         {
++            env_set_user(username, 0, display);
+             g_execlp3(text, g_cfg->default_wm, 0);
++            g_exit(0);
+         }
+-
+-        g_exit(0);
++    }
++    else
++    {
++        log_message(LOG_LEVEL_DEBUG, "No reconnect script (%s) present, so skipping.", text);
+     }
+ 
+     return display;

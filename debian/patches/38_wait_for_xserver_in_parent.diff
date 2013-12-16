@@ -1,6 +1,14 @@
 --- a/sesman/session.c
 +++ b/sesman/session.c
-@@ -642,48 +642,55 @@
+@@ -459,6 +459,7 @@
+         g_sprintf(geometry, "%dx%d", width, height);
+         g_sprintf(depth, "%d", bpp);
+         g_sprintf(screen, ":%d", display);
++        g_sleep(100);     // wait a little time to allow the display chain to be filled in parent thread
+         wmpid = g_fork();
+ 
+         if (wmpid == -1)
+@@ -642,48 +643,55 @@
              else /* parent (child sesman)*/
              {
                  wait_for_xserver(display);
