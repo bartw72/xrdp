@@ -1,6 +1,5 @@
 #%PAM-1.0
 @include common-auth
 @include common-account
-session    optional            pam_ck_connector.so
 @include common-session
 @include common-password

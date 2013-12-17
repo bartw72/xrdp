@@ -72,18 +72,18 @@
 +            username, uid, display, display_device, client_ip);
 +
 +    dbus_error_init (&error);
-+//    if (ck_connector_open_session_with_parameters (ck,
-+//                                                         &error,
-+//                                                         "unix-user", &uid,
++    if (ck_connector_open_session_with_parameters (ck,
++                                                         &error,
++                                                         "unix-user", &uid,
 +//                                                         "display-device", &display_device,
 +//                                                         "x11-display", &x11_display,
 +//                                                         "x11-display-device", &x11_display_device,
-+//                                                         "remote-host-name", &remote_host_name,
-+//                                                         "is-local", &is_local,
-+//                                                         NULL))
-+//    {
-+    if (ck_connector_open_session(ck, &error))
++                                                         "remote-host-name", &remote_host_name,
++                                                         "is-local", &is_local,
++                                                         NULL))
 +    {
++//    if (ck_connector_open_session(ck, &error))
++//    {
 +        session = ck_connector_get_cookie(ck);
 +        g_setenv("XDG_SESSION_COOKIE", session, 1);
 +        log_message(LOG_LEVEL_INFO, "Created new consolekit session with cookie %s.", session);
@@ -132,18 +132,17 @@
  
      /* initialize (zero out) local variables: */
      g_memset(&ltime, 0, sizeof(time_t));
-@@ -444,10 +537,21 @@
+@@ -444,10 +537,20 @@
          return 0;
      }
  
-+    ck = NULL;
-+//    ck = ck_connector_new();
-+//    if (ck == 0)
-+//    {
-+//        log_message(LOG_LEVEL_ERROR, "cannot create consolekit connection "
-+//                    "element - user %s", username);
-+//        return 0;
-+//    }
++    ck = ck_connector_new();
++    if (ck == 0)
++    {
++        log_message(LOG_LEVEL_ERROR, "cannot create consolekit connection "
++                    "element - user %s", username);
++        return 0;
++    }
 +
      pid = g_fork();
  
@@ -154,12 +153,22 @@
          log_message(LOG_LEVEL_ERROR, "cannot fork process for wm and x"
                      " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
      }
-@@ -469,9 +573,13 @@
+@@ -455,6 +558,9 @@
+     {
+         g_tcp_close(g_sck);
+         g_tcp_close(g_thread_sck);
++
++        log_message(LOG_LEVEL_DEBUG, "Starting auth_start_session in pid %d", g_getpid());
++
+         auth_start_session(data, display);
+         g_sprintf(geometry, "%dx%d", width, height);
+         g_sprintf(depth, "%d", bpp);
+@@ -469,9 +575,13 @@
          }
          else if (xpid == 0) /* child (child sesman) xserver */
          {
 -            env_set_user(username, passwd_file, display);
-+            log_message(LOG_LEVEL_DEBUG, "Forked the process for running xserver for user %s", username);
++            log_message(LOG_LEVEL_DEBUG, "Forked the process for running xserver for user %s as pid %d", username, g_getpid());
 +
 +            env_set_user(username, passwd_file, display, NULL, 0);
              env_check_password_file(passwd_file, password);
@@ -169,7 +178,7 @@
              if (type == SESMAN_SESSION_TYPE_XVNC)
              {
                  xserver_params = list_create();
-@@ -488,7 +596,7 @@
+@@ -488,7 +598,7 @@
  
                  /* additional parameters from sesman.ini file */
                  //config_read_xserver_params(SESMAN_SESSION_TYPE_XVNC,
@@ -178,41 +187,42 @@
                  list_append_list_strdup(g_cfg->vnc_params, xserver_params, 0);
  
                  /* make sure it ends with a zero */
-@@ -548,22 +656,32 @@
+@@ -548,22 +658,34 @@
          }
          else /* parent (child sesman) */
          {
 -            wmpid = g_fork();
--
++            log_message(LOG_LEVEL_DEBUG, "Starting windowmanager and sessvc in pid %d", g_getpid());
+ 
 -            if (wmpid == -1)
--            {
++            wait_for_xserver(display);
++            if (x_server_running(display))
+             {
 -                log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 -                    " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 -            }
 -            else if (wmpid == 0) /* child */
-+            wait_for_xserver(display);
-+            if (x_server_running(display))
-             {
+-            {
 -                wait_for_xserver(display);
 -                env_set_user(username, 0, display);
-+//                ck_start_session(ck, username, display, client_ip);
++                ck_start_session(ck, username, display, client_ip);
 +
 +                environment[0].key = "XDG_SESSION_COOKIE";
 +                environment[0].value = g_getenv("XDG_SESSION_COOKIE");
 +                environment[1].key = "GDMSESSION";
 +                environment[1].value = "FAKE_SESSION";
-+
-+                wmpid = g_fork();
  
 -                if (x_server_running(display))
++                wmpid = g_fork();
++
 +                if (wmpid == -1)
-                 {
++                {
 +                    log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 +                        " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 +                }
 +                else if (wmpid == 0) /* child */
-+                {
-+                    log_message(LOG_LEVEL_DEBUG, "Forked the process for running windowmanager for pid %s", username);
+                 {
++                    log_message(LOG_LEVEL_DEBUG, "Forked the process for running windowmanager for user %s as pid %d", username, g_getpid());
 +
 +                    env_set_user(username, 0, display, environment, 2);
                      auth_set_env(data);
@@ -222,7 +232,7 @@
                      if (directory != 0)
                      {
                          if (directory[0] != 0)
-@@ -576,6 +694,8 @@
+@@ -576,6 +698,8 @@
                      {
                          if (program[0] != 0)
                          {
@@ -231,7 +241,7 @@
                              g_execlp3(program, program, 0);
                              log_message(LOG_LEVEL_ALWAYS,
                                          "error starting program %s for user %s - pid %d",
-@@ -590,6 +710,7 @@
+@@ -590,6 +714,7 @@
  
                          if (g_file_exist(text))
                          {
@@ -239,7 +249,7 @@
                              g_execlp3(text, g_cfg->user_wm, 0);
                              log_message(LOG_LEVEL_ALWAYS, "error starting user "
                                          "wm for user %s - pid %d", username, g_getpid());
-@@ -608,6 +729,8 @@
+@@ -608,6 +733,8 @@
                      /* if we're here something happened to g_execlp3
                         so we try running the default window manager */
                      g_sprintf(text, "%s/%s", XRDP_CFG_PATH, g_cfg->default_wm);
@@ -248,7 +258,7 @@
                      g_execlp3(text, g_cfg->default_wm, 0);
  
                      log_message( LOG_LEVEL_ALWAYS, "error starting default "
-@@ -622,6 +745,7 @@
+@@ -622,6 +749,7 @@
                                  g_cfg->default_wm);
  
                      /* still a problem starting window manager just start xterm */
@@ -256,7 +266,7 @@
                      g_execlp3("xterm", "xterm", 0);
  
                      /* should not get here */
-@@ -631,67 +755,63 @@
+@@ -631,67 +759,65 @@
                      log_message(LOG_LEVEL_DEBUG, "errno: %d, description: "
                                  "%s", errno, g_get_strerror());
                  }
@@ -265,33 +275,36 @@
                  {
 -                    log_message(LOG_LEVEL_ERROR, "another Xserver might "
 -                                "already be active on display %d - see log", display);
-+                    g_snprintf(text, 256, "%d", display);
-+                    g_setenv("XRDP_SESSVC_DISPLAY", text, 1);
-+                    g_snprintf(text, 256, ":%d.0", display);
-+                    g_setenv("DISPLAY", text, 1);
-+                    /* new style waiting for clients */
-+                    session_start_sessvc(xpid, wmpid, data, username, display, environment, 2);
-                 }
+-                }
++                    log_message(LOG_LEVEL_DEBUG, "Starting sessvc in pid %d", g_getpid());
  
-                 log_message(LOG_LEVEL_DEBUG, "aborting connection...");
-                 g_exit(0);
-             }
+-                log_message(LOG_LEVEL_DEBUG, "aborting connection...");
+-                g_exit(0);
+-            }
 -            else /* parent (child sesman)*/
-+            else
-             {
+-            {
 -                wait_for_xserver(display);
 -                if (x_server_running(display))
 -                {
 -                    g_snprintf(text, 255, "%d", display);
--                    g_setenv("XRDP_SESSVC_DISPLAY", text, 1);
++                    g_snprintf(text, 256, "%d", display);
+                     g_setenv("XRDP_SESSVC_DISPLAY", text, 1);
 -                    g_snprintf(text, 255, ":%d.0", display);
--                    g_setenv("DISPLAY", text, 1);
--                    /* new style waiting for clients */
++                    g_snprintf(text, 256, ":%d.0", display);
+                     g_setenv("DISPLAY", text, 1);
+                     /* new style waiting for clients */
 -                    session_start_sessvc(xpid, wmpid, data, username, display);
--                }
++                    session_start_sessvc(xpid, wmpid, data, username, display, environment, 2);
+                 }
+             }
++            else
++            {
 +                 log_message(LOG_LEVEL_ERROR, "another Xserver might "
 +                             "already be active on display %d - see log", display);
-             }
++            }
++
++            log_message(LOG_LEVEL_DEBUG, "aborting connection...");
++            g_exit(0);
          }
      }
      else /* parent sesman process */
@@ -369,7 +382,7 @@
      }
  
      return display;
-@@ -717,7 +837,12 @@
+@@ -717,7 +843,12 @@
          }
          else if (pid == 0)
          {
@@ -383,7 +396,7 @@
              g_execlp3(text, g_cfg->default_wm, 0);
              g_exit(0);
          }
-@@ -848,6 +973,8 @@
+@@ -848,6 +979,8 @@
  
          if (tmp->item->pid == pid)
          {
