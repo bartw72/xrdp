@@ -1,7 +1,8 @@
-xrdp (0.7.0-1.13) UNRELEASED; urgency=medium
+xrdp (0.7.0-1.13) ingunstable; urgency=medium
 
   * Add logging in reconnect flow
   * Reorder reconnect flow to avoid needless fork
+  * Reorder pam to allow for better reconnects.
 
  -- Warmerdam, B. (Bart) <Bart.Warmerdam@mail.ing.nl>  Mon, 16 Dec 2013 15:44:52 +0100
 
