@@ -1,38 +1,19 @@
 --- a/sesman/session.c
 +++ b/sesman/session.c
-@@ -30,6 +30,9 @@
- #include <errno.h>
- //#include <time.h>
- 
-+#include <ConsoleKit/ck-connector/ck-connector.h>
-+#include <pwd.h>
-+
- extern tbus g_sync_event;
- extern unsigned char g_fixedkey[8];
- extern struct config_sesman *g_cfg; /* in sesman.c */
-@@ -227,7 +230,7 @@
- 
- /******************************************************************************/
- static void DEFAULT_CC
--session_start_sessvc(int xpid, int wmpid, long data, char *username, int display)
-+session_start_sessvc(int xpid, int wmpid, long data, char *username, int display, environment_item environment[], int envsize)
- {
-     struct list *sessvc_params = (struct list *)NULL;
-     char wmpid_str[25];
-@@ -258,7 +261,11 @@
+@@ -258,8 +258,12 @@
      list_add_item(sessvc_params, (long)g_strdup(wmpid_str));
      list_add_item(sessvc_params, 0); /* mandatory */
  
--    env_set_user(username, 0, display);
 +    log_message(LOG_LEVEL_DEBUG, "Changing sessvc process to user %s", username);
 +
-+    env_set_user(username, 0, display, environment, envsize);
-+
-+    log_message(LOG_LEVEL_DEBUG, "Starting %s", exe_path);
+     env_set_user(username, 0, display);
  
++    log_message(LOG_LEVEL_DEBUG, "Starting %s", exe_path);
++
      /* executing sessvc */
      g_execvp(exe_path, ((char **)sessvc_params->items));
-@@ -288,7 +295,7 @@
+ 
+@@ -288,7 +292,7 @@
      g_sigterm(xpid);
      g_sigterm(wmpid);
      g_sleep(1000);
@@ -41,128 +22,7 @@
      g_exit(0);
  }
  
-@@ -375,6 +382,90 @@
-     return 0;
- }
- 
-+static int APP_CC
-+uid_from_username(char *username)
-+{
-+    struct passwd * pwd = getpwnam(username);
-+    if (pwd != NULL)
-+    {
-+        return pwd->pw_uid;
-+    }
-+    return -1;
-+}
-+
-+static int APP_CC
-+ck_start_session(CkConnector *ck, char *username, int display, char *client_ip)
-+{
-+    DBusError error;
-+    const char *session;
-+    char display_device[20];
-+    char x11_display[10];
-+    char x11_display_device[20];
-+    const char *remote_host_name;
-+    uid_t       uid;
-+    dbus_bool_t is_local;
-+
-+    //g_snprintf(display_device, 20, "/dev/tty%d", display);
-+    g_snprintf(display_device, 20, "/dev/x%d", display);
-+    g_snprintf(x11_display, 10, ":%d", display);
-+    g_snprintf(x11_display_device, 20, "");
-+    //g_snprintf(x11_display_device, 20, "/dev/tty%d", display);
-+    remote_host_name = client_ip;
-+    uid = uid_from_username(username);
-+    is_local = FALSE;
-+
-+    log_message(LOG_LEVEL_ALWAYS, "Starting consolekit connection for user %s(%d), display %d (%s) and client %s.",
-+            username, uid, display, display_device, client_ip);
-+
-+    dbus_error_init (&error);
-+    if (ck_connector_open_session_with_parameters (ck,
-+                                                         &error,
-+                                                         "unix-user", &uid,
-+//                                                         "display-device", &display_device,
-+//                                                         "x11-display", &x11_display,
-+//                                                         "x11-display-device", &x11_display_device,
-+                                                         "remote-host-name", &remote_host_name,
-+                                                         "is-local", &is_local,
-+                                                         NULL))
-+    {
-+//    if (ck_connector_open_session(ck, &error))
-+//    {
-+        session = ck_connector_get_cookie(ck);
-+        g_setenv("XDG_SESSION_COOKIE", session, 1);
-+        log_message(LOG_LEVEL_INFO, "Created new consolekit session with cookie %s.", session);
-+    }
-+    else
-+    {
-+        if (dbus_error_is_set (&error)) {
-+            log_message(LOG_LEVEL_ERROR, "Error opening consolekit session - %s.", error.message);
-+            dbus_error_free (&error);
-+        } else {
-+            log_message(LOG_LEVEL_ERROR, "insufficient privileges or D-Bus / ConsoleKit not available");
-+        }
-+    }
-+}
-+
-+static int APP_CC
-+ck_stop_session(CkConnector *ck)
-+{
-+    DBusError error;
-+    dbus_error_init (&error);
-+    log_message(LOG_LEVEL_ALWAYS, "Closing consolekit connection with connection %p.", ck);
-+    if (ck != NULL)
-+    {
-+        if (!ck_connector_close_session(ck, &error))
-+        {
-+            if (dbus_error_is_set(&error)) {
-+                log_message(LOG_LEVEL_ALWAYS, "Error closing consolekit connection (%s).", error.message);
-+                dbus_error_free(&error);
-+            } else {
-+                log_message(LOG_LEVEL_ALWAYS, "Error closing consolekit connection.");
-+            }
-+        }
-+        ck_connector_unref(ck);
-+    }
-+}
-+
- /******************************************************************************/
- /* called with the main thread */
- static int APP_CC
-@@ -398,6 +489,8 @@
-     time_t ltime;
-     struct tm stime;
-     char execvpparams[2048];
-+//    CkConnector *ck;
-+//    environment_item environment[2];
- 
-     /* initialize (zero out) local variables: */
-     g_memset(&ltime, 0, sizeof(time_t));
-@@ -444,10 +537,20 @@
-         return 0;
-     }
- 
-+//    ck = ck_connector_new();
-+//    if (ck == 0)
-+//    {
-+//        log_message(LOG_LEVEL_ERROR, "cannot create consolekit connection "
-+//                    "element - user %s", username);
-+//        return 0;
-+//    }
-+
-     pid = g_fork();
- 
-     if (pid == -1)
-     {
-+//        ck_connector_unref(ck);
-+//        ck = NULL;
-         log_message(LOG_LEVEL_ERROR, "cannot fork process for wm and x"
-                     " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
-     }
-@@ -455,11 +558,13 @@
+@@ -455,11 +459,13 @@
      {
          g_tcp_close(g_sck);
          g_tcp_close(g_thread_sck);
@@ -178,14 +38,13 @@
          xpid = g_fork();
  
          if (xpid == -1)
-@@ -469,9 +574,13 @@
+@@ -469,9 +475,13 @@
          }
          else if (xpid == 0) /* child (child sesman) xserver */
          {
--            env_set_user(username, passwd_file, display);
 +            log_message(LOG_LEVEL_DEBUG, "Forked the process for running xserver for user %s as pid %d", username, g_getpid());
 +
-+            env_set_user(username, passwd_file, display, NULL, 0);
+             env_set_user(username, passwd_file, display);
              env_check_password_file(passwd_file, password);
  
 +            log_message(LOG_LEVEL_DEBUG, "Running xserver process as user %s", username);
@@ -193,7 +52,7 @@
              if (type == SESMAN_SESSION_TYPE_XVNC)
              {
                  xserver_params = list_create();
-@@ -488,7 +597,7 @@
+@@ -488,7 +498,7 @@
  
                  /* additional parameters from sesman.ini file */
                  //config_read_xserver_params(SESMAN_SESSION_TYPE_XVNC,
@@ -202,7 +61,7 @@
                  list_append_list_strdup(g_cfg->vnc_params, xserver_params, 0);
  
                  /* make sure it ends with a zero */
-@@ -548,21 +657,36 @@
+@@ -548,21 +558,28 @@
          }
          else /* parent (child sesman) */
          {
@@ -210,37 +69,29 @@
 +            log_message(LOG_LEVEL_DEBUG, "Starting windowmanager and sessvc in pid %d", g_getpid());
  
 -            if (wmpid == -1)
-+            wait_for_xserver(display);
-+            if (x_server_running(display))
-             {
+-            {
 -                log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 -                    " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 -            }
 -            else if (wmpid == 0) /* child */
--            {
++            wait_for_xserver(display);
++            if (x_server_running(display))
+             {
 -                wait_for_xserver(display);
 -                env_set_user(username, 0, display);
-+                //ck_start_session(ck, username, display, client_ip);
-+
-+                //environment[0].key = "XDG_SESSION_COOKIE1";
-+                //environment[0].value = g_getenv("XDG_SESSION_COOKIE");
-+                //environment[1].key = "GDMSESSION1";
-+                //environment[1].value = "FAKE_SESSION";
-+
 +                wmpid = g_fork();
  
 -                if (x_server_running(display))
 +                if (wmpid == -1)
-                 {
++                {
 +                    log_message(LOG_LEVEL_ERROR, "cannot fork process for wm"
 +                        " - user %s, display=%d, sessioncount=%d", username, display, g_session_count);
 +                }
 +                else if (wmpid == 0) /* child */
-+                {
+                 {
 +                    log_message(LOG_LEVEL_DEBUG, "Forked the process for running windowmanager for user %s as pid %d", username, g_getpid());
 +
-+                    env_set_user(username, 0, display, NULL, 0);
-+                    //env_set_user(username, 0, display, environment, 2);
++                    env_set_user(username, 0, display);
 +                    auth_start_session(data, display);	// moved from above
                      auth_set_env(data);
 +                    auth_end(data);			// moved from end session
@@ -249,7 +100,7 @@
  
                      if (directory != 0)
                      {
-@@ -576,6 +700,8 @@
+@@ -576,6 +593,8 @@
                      {
                          if (program[0] != 0)
                          {
@@ -258,7 +109,7 @@
                              g_execlp3(program, program, 0);
                              log_message(LOG_LEVEL_ALWAYS,
                                          "error starting program %s for user %s - pid %d",
-@@ -590,6 +716,7 @@
+@@ -590,6 +609,7 @@
  
                          if (g_file_exist(text))
                          {
@@ -266,7 +117,7 @@
                              g_execlp3(text, g_cfg->user_wm, 0);
                              log_message(LOG_LEVEL_ALWAYS, "error starting user "
                                          "wm for user %s - pid %d", username, g_getpid());
-@@ -608,6 +735,8 @@
+@@ -608,6 +628,8 @@
                      /* if we're here something happened to g_execlp3
                         so we try running the default window manager */
                      g_sprintf(text, "%s/%s", XRDP_CFG_PATH, g_cfg->default_wm);
@@ -275,7 +126,7 @@
                      g_execlp3(text, g_cfg->default_wm, 0);
  
                      log_message( LOG_LEVEL_ALWAYS, "error starting default "
-@@ -622,6 +751,7 @@
+@@ -622,6 +644,7 @@
                                  g_cfg->default_wm);
  
                      /* still a problem starting window manager just start xterm */
@@ -283,7 +134,7 @@
                      g_execlp3("xterm", "xterm", 0);
  
                      /* should not get here */
-@@ -631,67 +761,66 @@
+@@ -631,67 +654,63 @@
                      log_message(LOG_LEVEL_DEBUG, "errno: %d, description: "
                                  "%s", errno, g_get_strerror());
                  }
@@ -310,9 +161,7 @@
 +                    g_snprintf(text, 256, ":%d.0", display);
                      g_setenv("DISPLAY", text, 1);
                      /* new style waiting for clients */
--                    session_start_sessvc(xpid, wmpid, data, username, display);
-+                    session_start_sessvc(xpid, wmpid, data, username, display, NULL, 0);
-+                    //session_start_sessvc(xpid, wmpid, data, username, display, environment, 2);
+                     session_start_sessvc(xpid, wmpid, data, username, display);
                  }
              }
 +            else
@@ -384,8 +233,6 @@
 +        temp->item->type = type;
 +        temp->item->status = SESMAN_SESSION_STATUS_ACTIVE;
 +
-+        //temp->item->ck = ck;
-+
 +        log_message(LOG_LEVEL_DEBUG, "Going to register pid %d and display %d for user %s", pid, display, username);
 +        /*THREAD-FIX require chain lock */
 +        lock_chain_acquire();
@@ -400,149 +247,16 @@
      }
  
      return display;
-@@ -717,7 +846,12 @@
+@@ -717,7 +736,12 @@
          }
          else if (pid == 0)
          {
--            env_set_user(username, 0, display);
 +            log_message(LOG_LEVEL_DEBUG, "Change forked process to user %s", username);
 +
-+            env_set_user(username, 0, display, NULL, 0);
+             env_set_user(username, 0, display);
 +
 +            log_message(LOG_LEVEL_DEBUG, "Reconnect to windowmanager process %s as user %s", text, username);
 +
              g_execlp3(text, g_cfg->default_wm, 0);
              g_exit(0);
          }
-@@ -848,6 +982,8 @@
- 
-         if (tmp->item->pid == pid)
-         {
-+            ck_stop_session(tmp->item->ck);
-+
-             /* deleting the session */
-             log_message(LOG_LEVEL_INFO, "++ terminated session:  username %s, display :%d.0, session_pid %d, ip %s", tmp->item->name, tmp->item->display, tmp->item->pid, tmp->item->client_ip);
-             g_free(tmp->item);
---- a/sesman/Makefile.am
-+++ b/sesman/Makefile.am
-@@ -6,9 +6,11 @@
-   -DXRDP_SHARE_PATH=\"${datadir}/xrdp\" \
-   -DXRDP_PID_PATH=\"${localstatedir}/run\"
- 
-+DBUS1=$(shell ${PKG_CONFIG} --cflags dbus-1)
- INCLUDES = \
-   -I$(top_srcdir)/common \
--  -I$(top_srcdir)/sesman/libscp
-+  -I$(top_srcdir)/sesman/libscp \
-+  ${DBUS1}
- 
- if SESMAN_NOPAM
- AUTH_C = verify_user.c
-@@ -50,7 +52,9 @@
-   $(top_builddir)/common/libcommon.la \
-   $(top_builddir)/sesman/libscp/libscp.la \
-   $(AUTH_LIB) \
--  -lpthread
-+  -lpthread \
-+  -lck-connector \
-+  -ldbus-1
- 
- sesmansysconfdir=$(sysconfdir)/xrdp
- 
---- a/sesman/tools/Makefile.am
-+++ b/sesman/tools/Makefile.am
-@@ -6,10 +6,12 @@
-   -DXRDP_SHARE_PATH=\"${datadir}/xrdp\" \
-   -DXRDP_PID_PATH=\"${localstatedir}/run\"
- 
-+DBUS1=$(shell ${PKG_CONFIG} --cflags dbus-1)
- INCLUDES = \
-   -I$(top_srcdir)/common \
-   -I$(top_srcdir)/sesman/libscp \
--  -I$(top_srcdir)/sesman
-+  -I$(top_srcdir)/sesman \
-+  ${DBUS1}
- 
- bin_PROGRAMS = \
-   xrdp-sesrun \
---- a/sesman/session.h
-+++ b/sesman/session.h
-@@ -30,6 +30,8 @@
- 
- #include "libscp_types.h"
- 
-+#include <ConsoleKit/ck-connector/ck-connector.h>
-+
- #define SESMAN_SESSION_TYPE_XRDP  1
- #define SESMAN_SESSION_TYPE_XVNC  2
- 
-@@ -75,6 +77,7 @@
-   struct session_date disconnect_time;
-   struct session_date idle_time;
-   char client_ip[256];
-+  CkConnector *ck;
- };
- 
- struct session_chain
---- a/sesman/env.c
-+++ b/sesman/env.c
-@@ -60,7 +60,7 @@
- 
- /******************************************************************************/
- int DEFAULT_CC
--env_set_user(char *username, char *passwd_file, int display)
-+env_set_user(char *username, char *passwd_file, int display, environment_item environ[], int envsize)
- {
-     int error;
-     int pw_uid;
-@@ -70,6 +70,7 @@
-     char pw_dir[256];
-     char pw_gecos[256];
-     char text[256];
-+    int i;
- 
-     error = g_getuser_info(username, &pw_gid, &pw_uid, pw_shell, pw_dir,
-                            pw_gecos);
-@@ -107,6 +108,11 @@
-             g_setenv("LANG", "en_US.UTF-8", 1);
-             g_setenv("XRDP_SESSION", "1", 1);
- 
-+            for (i = 0; i < envsize; i++)
-+            {
-+                g_setenv(environ[i].key, environ[i].value, 1);
-+            }
-+
-             if (passwd_file != 0)
-             {
-                 if (0 == g_cfg->auth_file_path)
---- a/sesman/env.h
-+++ b/sesman/env.h
-@@ -27,6 +27,14 @@
- #ifndef ENV_H
- #define ENV_H
- 
-+struct environment_item
-+{
-+    char * key;
-+    char * value;
-+};
-+
-+typedef struct environment_item environment_item;
-+
- /**
-  *
-  * @brief Creates vnc password file
-@@ -44,10 +52,12 @@
-  * @param username Username
-  * @param passwd_file VNC password file
-  * @param display The session display
-+ * @param environ Additional environment variables.
-+ * @param envsize Number of environment variables passed.
-  * @return 0 on success, g_getuser_info() error codes on error
-  *
-  */
- int DEFAULT_CC
--env_set_user(char* username, char* passwd_file, int display);
-+env_set_user(char* username, char* passwd_file, int display, environment_item environ[], int envsize);
- 
- #endif
