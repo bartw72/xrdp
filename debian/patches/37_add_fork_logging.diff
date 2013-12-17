@@ -24,7 +24,23 @@
  
  static int g_term = 0;
  
-@@ -81,7 +84,13 @@
+@@ -37,6 +40,7 @@
+ void DEFAULT_CC
+ term_signal_handler(int sig)
+ {
++    LOGM((LOG_LEVEL_ALWAYS, "term_signal_handler: received signal %d", sig));
+     g_writeln("xrdp-sessvc: term_signal_handler: got signal %d", sig);
+     g_term = 1;
+ }
+@@ -45,6 +49,7 @@
+ void DEFAULT_CC
+ nil_signal_handler(int sig)
+ {
++    LOGM((LOG_LEVEL_ALWAYS, "nil_signal_handler: received signal %d", sig));
+     g_writeln("xrdp-sessvc: nil_signal_handler: got signal %d", sig);
+ }
+ 
+@@ -81,7 +86,13 @@
      int wm_pid = 0;
      int x_pid = 0;
      int lerror = 0;
@@ -38,7 +54,7 @@
  
      g_init("xrdp-sessvc");
      g_memset(exe_path, 0, sizeof(exe_path));
-@@ -93,6 +102,58 @@
+@@ -93,20 +104,79 @@
          return 1;
      }
  
@@ -94,10 +110,13 @@
 +
 +    LOGM((LOG_LEVEL_ALWAYS, "main: app started pid %d(0x%8.8x)", pid, pid));
 +
++    g_signal_hang_up(nil_signal_handler); /* SIGHUP */
      g_signal_kill(term_signal_handler); /* SIGKILL */
      g_signal_terminate(term_signal_handler); /* SIGTERM */
      g_signal_user_interrupt(term_signal_handler); /* SIGINT */
-@@ -101,12 +162,17 @@
+     g_signal_pipe(nil_signal_handler); /* SIGPIPE */
++
+     x_pid = g_atoi(argv[1]);
      wm_pid = g_atoi(argv[2]);
      g_writeln("xrdp-sessvc: waiting for X (pid %d) and WM (pid %d)",
                x_pid, wm_pid);
@@ -115,7 +134,7 @@
          g_deinit();
          return 1;
      }
-@@ -114,9 +180,16 @@
+@@ -114,9 +184,16 @@
      {
          g_set_current_dir(XRDP_SBIN_PATH);
          g_snprintf(exe_path, 261, "%s/xrdp-chansrv", XRDP_SBIN_PATH);
@@ -132,7 +151,7 @@
          g_deinit();
          return 1;
      }
-@@ -136,10 +209,14 @@
+@@ -136,10 +213,14 @@
          lerror = g_get_errno();
      }
  
@@ -147,7 +166,7 @@
      g_sigterm(chansrv_pid);
      ret = g_waitpid(chansrv_pid);
  
-@@ -149,9 +226,13 @@
+@@ -149,9 +230,13 @@
          g_sleep(1);
      }
  
@@ -161,7 +180,7 @@
      g_sigterm(x_pid);
      ret = g_waitpid(x_pid);
  
-@@ -161,7 +242,9 @@
+@@ -161,7 +246,9 @@
          g_sleep(1);
      }
  
@@ -257,7 +276,7 @@
  
  int g_sck;
  int g_pid;
-@@ -135,6 +136,34 @@
+@@ -135,6 +136,51 @@
      g_tcp_close(g_sck);
  }
  
@@ -266,7 +285,24 @@
 +    log_message(LOG_LEVEL_ERROR, "Sigcld handler  PID: %ld, UID: %ld, Errno: %d, Status: %d, Code: %d",
 +               (long)siginfo->si_pid, (long)siginfo->si_uid,
 +               siginfo->si_errno, siginfo->si_status, siginfo->si_code);
-+    sig_sesman_session_end(SIGCHLD);
++
++    if (siginfo->si_code == CLD_EXITED)
++    {
++        log_message(LOG_LEVEL_INFO, "Process %d exited with resultcode %d", siginfo->si_pid, siginfo->si_status);
++        sig_sesman_session_end(SIGCHLD);
++    }
++    else if (siginfo->si_code == CLD_KILLED)
++    {
++        log_message(LOG_LEVEL_INFO, "Process %d was killed with signal %d", siginfo->si_pid, siginfo->si_status);
++        if (siginfo->si_status > 1)
++        {
++            sig_sesman_session_end(SIGCHLD);
++        }
++    }
++    else
++    {
++        sig_sesman_session_end(SIGCHLD);
++    }
 +}
 +
 +static void DEFAULT_CC
@@ -292,7 +328,7 @@
  /******************************************************************************/
  int DEFAULT_CC
  main(int argc, char **argv)
-@@ -328,7 +357,8 @@
+@@ -328,7 +374,8 @@
      g_signal_user_interrupt(sig_sesman_shutdown); /* SIGINT  */
      g_signal_kill(sig_sesman_shutdown); /* SIGKILL */
      g_signal_terminate(sig_sesman_shutdown); /* SIGTERM */
