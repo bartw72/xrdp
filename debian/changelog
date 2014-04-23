@@ -1,3 +1,9 @@
+xrdp (0.7.0-1.14) ingunstable; urgency=medium
+
+  * Add support w3 window manager for session cleanup.
+
+ -- Warmerdam, B. (Bart) <Bart.Warmerdam@mail.ing.nl>  Wed, 23 Apr 2014 16:05:08 +0200
+
 xrdp (0.7.0-1.13) ingunstable; urgency=medium
 
   * Add logging in reconnect flow
