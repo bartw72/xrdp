@@ -1,6 +1,8 @@
---- a/common/os_calls.c
-+++ b/common/os_calls.c
-@@ -574,7 +574,19 @@
+Index: xrdp-bartw72/common/os_calls.c
+===================================================================
+--- xrdp-bartw72.orig/common/os_calls.c
++++ xrdp-bartw72/common/os_calls.c
+@@ -574,7 +574,19 @@ g_tcp_connect(int sck, const char *addre
                  {
                      break; /* Success */
                  }
