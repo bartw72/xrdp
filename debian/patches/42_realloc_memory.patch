@@ -1,0 +1,39 @@
+--- a/xorg/X11R7.6/rdp/rdp.h
++++ b/xorg/X11R7.6/rdp/rdp.h
+@@ -117,6 +117,8 @@
+   int depth;
+   int bitsPerPixel;
+   int sizeInBytes;
++  int sizeInBytesAlloc; /* size of current alloc frame buffer,
++                           always >= sizeInBytes */
+   char* pfbMemory;
+   Pixel blackPixel;
+   Pixel whitePixel;
+--- a/xorg/X11R7.6/rdp/rdpmain.c
++++ b/xorg/X11R7.6/rdp/rdpmain.c
+@@ -273,7 +273,8 @@
+         g_rdpScreen.sizeInBytes =
+             (g_rdpScreen.paddedWidthInBytes * g_rdpScreen.height);
+         ErrorF("buffer size %d\n", g_rdpScreen.sizeInBytes);
+-        g_rdpScreen.pfbMemory = (char *)g_malloc(2048 * 2048 * 4, 1);
++        g_rdpScreen.pfbMemory = (char *)g_malloc(g_rdpScreen.sizeInBytes, 1);
++	g_rdpScreen.sizeInBytesAlloc = g_rdpScreen.sizeInBytes;
+     }
+ 
+     if (g_rdpScreen.pfbMemory == 0)
+--- a/xorg/X11R7.6/rdp/rdprandr.c
++++ b/xorg/X11R7.6/rdp/rdprandr.c
+@@ -156,6 +156,13 @@
+         ErrorF("  resizing screenPixmap [%p] to %dx%d, currently at %dx%d\n",
+                (void *)screenPixmap, width, height,
+                screenPixmap->drawable.width, screenPixmap->drawable.height);
++	if (g_rdpScreen.sizeInBytes > g_rdpScreen.sizeInBytesAlloc)
++	{
++		g_free(g_rdpScreen.pfbMemory);
++		g_rdpScreen.pfbMemory = (char*)g_malloc(g_rdpScreen.sizeInBytes, 1);
++		g_rdpScreen.sizeInBytesAlloc = g_rdpScreen.sizeInBytes;
++		ErrorF("new buffer size %d\n", g_rdpScreen.sizeInBytes);
++	}
+         pScreen->ModifyPixmapHeader(screenPixmap, width, height,
+                                     g_rdpScreen.depth, g_rdpScreen.bitsPerPixel,
+                                     g_rdpScreen.paddedWidthInBytes,
