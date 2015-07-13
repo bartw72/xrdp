@@ -1,6 +1,8 @@
---- a/xorg/X11R7.6/rdp/rdp.h
-+++ b/xorg/X11R7.6/rdp/rdp.h
-@@ -47,7 +47,7 @@
+Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdp.h
+===================================================================
+--- xrdp-bartw72.orig/xorg/X11R7.6/rdp/rdp.h
++++ xrdp-bartw72/xorg/X11R7.6/rdp/rdp.h
+@@ -47,7 +47,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE
  
  //#include "cfb.h"
  
@@ -9,7 +11,7 @@
  #include "colormapst.h"
  #include "gcstruct.h"
  #include "input.h"
-@@ -443,6 +443,8 @@
+@@ -445,6 +445,8 @@ rdpSpriteRealizeCursor(DeviceIntPtr pDev
  Bool
  rdpSpriteUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScr, CursorPtr pCurs);
  void
@@ -18,9 +20,11 @@
  rdpSpriteSetCursor(DeviceIntPtr pDev, ScreenPtr pScr, CursorPtr pCurs,
                     int x, int y);
  void
---- a/xorg/X11R7.6/rdp/rdpinput.c
-+++ b/xorg/X11R7.6/rdp/rdpinput.c
-@@ -37,6 +37,7 @@
+Index: xrdp-bartw72/xorg/X11R7.6/rdp/rdpinput.c
+===================================================================
+--- xrdp-bartw72.orig/xorg/X11R7.6/rdp/rdpinput.c
++++ xrdp-bartw72/xorg/X11R7.6/rdp/rdpinput.c
+@@ -37,6 +37,7 @@ keyboard and mouse stuff
  /* this should be fixed in rdesktop */
  
  #include "rdp.h"
@@ -28,7 +32,7 @@
  
  #if 1
  #define DEBUG_OUT_INPUT(arg)
-@@ -44,6 +45,8 @@
+@@ -44,6 +45,8 @@ keyboard and mouse stuff
  #define DEBUG_OUT_INPUT(arg) ErrorF arg
  #endif
  
@@ -37,7 +41,7 @@
  extern ScreenPtr g_pScreen; /* in rdpmain.c */
  extern DeviceIntPtr g_pointer; /* in rdpmain.c */
  extern DeviceIntPtr g_keyboard; /* in rdpmain.c */
-@@ -58,6 +61,7 @@
+@@ -58,6 +61,7 @@ static int g_tab_down = 0;
  /* this is toggled every time num lock key is released, not like the
     above *_down vars */
  static int g_scroll_lock_down = 0;
@@ -45,7 +49,7 @@
  
  #define MIN_KEY_CODE 8
  #define MAX_KEY_CODE 255
-@@ -83,43 +87,6 @@
+@@ -83,43 +87,6 @@ static int g_scroll_lock_down = 0;
  #define N_PREDEFINED_KEYS \
      (sizeof(g_kbdMap) / (sizeof(KeySym) * GLYPHS_PER_KEY))
  
@@ -89,7 +93,7 @@
  static KeySym g_kbdMap[] =
  {
      NoSymbol,        NoSymbol,        /* 8 */
-@@ -549,7 +516,7 @@
+@@ -549,7 +516,7 @@ get_pixel_safe(char *data, int x, int y,
          shift = x % 8;
          c = (unsigned char)(data[start]);
  #if (X_BYTE_ORDER == X_LITTLE_ENDIAN)
@@ -98,7 +102,7 @@
  #else
          return (c & (0x80 >> shift)) != 0;
  #endif
-@@ -559,6 +526,11 @@
+@@ -559,6 +526,11 @@ get_pixel_safe(char *data, int x, int y,
          src32 = (unsigned int*)data;
          return src32[y * width + x];
      }
@@ -110,7 +114,7 @@
  
      return 0;
  }
-@@ -570,7 +542,6 @@
+@@ -570,7 +542,6 @@ set_pixel_safe(char *data, int x, int y,
  {
      int start;
      int shift;
@@ -118,7 +122,7 @@
  
      if (x < 0)
      {
-@@ -602,21 +573,165 @@
+@@ -602,21 +573,165 @@ set_pixel_safe(char *data, int x, int y,
          {
              data[start] = data[start] | (0x80 >> shift);
          }
@@ -293,7 +297,7 @@
      }
  }
  
-@@ -627,13 +742,14 @@
+@@ -627,13 +742,14 @@ rdpSpriteSetCursor(DeviceIntPtr pDev, Sc
  {
      char cur_data[32 * (32 * 4)];
      char cur_mask[32 * (32 / 8)];
@@ -309,7 +313,7 @@
      int xhot;
      int yhot;
      int paddedRowBytes;
-@@ -641,12 +757,7 @@
+@@ -641,12 +757,7 @@ rdpSpriteSetCursor(DeviceIntPtr pDev, Sc
      int bgcolor;
      int bpp;
  
@@ -323,7 +327,7 @@
      {
          return;
      }
-@@ -654,7 +765,8 @@
+@@ -654,7 +765,8 @@ rdpSpriteSetCursor(DeviceIntPtr pDev, Sc
      w = pCurs->bits->width;
      h = pCurs->bits->height;
      if ((pCurs->bits->argb != 0) &&
@@ -333,7 +337,7 @@
      {
          bpp = 32;
          paddedRowBytes = PixmapBytePad(w, 32);
-@@ -668,7 +780,7 @@
+@@ -668,7 +780,7 @@ rdpSpriteSetCursor(DeviceIntPtr pDev, Sc
          {
              for (i = 0; i < 32; i++)
              {
@@ -342,7 +346,7 @@
                  set_pixel_safe(cur_data, i, 31 - j, 32, 32, 32, p);
              }
          }
-@@ -676,39 +788,103 @@
+@@ -676,39 +788,103 @@ rdpSpriteSetCursor(DeviceIntPtr pDev, Sc
      else
      {
          bpp = 0;
@@ -464,7 +468,7 @@
      rdpup_end_update();
  }
  
-@@ -739,8 +915,8 @@
+@@ -739,8 +915,8 @@ static void
  rdpEnqueueMotion(int mode, double x, double y)
  {
      int i;
@@ -475,7 +479,7 @@
      ValuatorMask *mask = valuator_mask_new(2);
  
  # if 0
-@@ -753,7 +929,8 @@
+@@ -753,7 +929,8 @@ rdpEnqueueMotion(int mode, double x, dou
      }
  
  #endif
@@ -485,9 +489,11 @@
      valuator_mask_set_double(mask, 0, x);
      valuator_mask_set_double(mask, 1, y);
  
---- a/common/xrdp_client_info.h
-+++ b/common/xrdp_client_info.h
-@@ -93,6 +93,7 @@
+Index: xrdp-bartw72/common/xrdp_client_info.h
+===================================================================
+--- xrdp-bartw72.orig/common/xrdp_client_info.h
++++ xrdp-bartw72/common/xrdp_client_info.h
+@@ -93,6 +93,7 @@ struct xrdp_client_info
    int pointer_flags; /* 0 color, 1 new, 2 no new */
    int use_fast_path;
    int require_credentials; /* when true, credentials *must* be passed on cmd line */
@@ -495,9 +501,11 @@
  };
  
  #endif
---- a/libxrdp/xrdp_rdp.c
-+++ b/libxrdp/xrdp_rdp.c
-@@ -98,6 +98,15 @@
+Index: xrdp-bartw72/libxrdp/xrdp_rdp.c
+===================================================================
+--- xrdp-bartw72.orig/libxrdp/xrdp_rdp.c
++++ xrdp-bartw72/libxrdp/xrdp_rdp.c
+@@ -98,6 +98,15 @@ xrdp_rdp_read_config(struct xrdp_client_
          {
              client_info->use_bulk_comp = text2bool(value);
          }
@@ -513,8 +521,10 @@
          else if (g_strcasecmp(item, "crypt_level") == 0)
          {
              if (g_strcasecmp(value, "low") == 0)
+Index: xrdp-bartw72/xorg/X11R7.6/rdp/cursors.h
+===================================================================
 --- /dev/null
-+++ b/xorg/X11R7.6/rdp/cursors.h
++++ xrdp-bartw72/xorg/X11R7.6/rdp/cursors.h
 @@ -0,0 +1,1057 @@
 +
 +#ifndef _CURSORS_H
@@ -1573,9 +1583,11 @@
 +"                        ";
 +
 +#endif
---- a/xrdp/xrdp.ini
-+++ b/xrdp/xrdp.ini
-@@ -29,6 +29,7 @@
+Index: xrdp-bartw72/xrdp/xrdp.ini
+===================================================================
+--- xrdp-bartw72.orig/xrdp/xrdp.ini
++++ xrdp-bartw72/xrdp/xrdp.ini
+@@ -29,6 +29,7 @@ tcp_keepalive=yes
  # require_credentials=yes
  
  #bulk_compression=yes

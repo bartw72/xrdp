@@ -4,7 +4,8 @@
 04_add_lock_on_add.diff
 20-startup-messages.patch
 #21-xserver-1.12.4.patch
-21-xserver-1.14.3.patch
+#21-xserver-1.14.3.patch
+21-xserver-1.16.0.patch
 23_disable_offscreen_bitmaps.patch
 30-mouse-pointer-fix.patch
 31-sesman-more-sessions.patch

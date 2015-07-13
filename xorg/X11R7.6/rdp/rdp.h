@@ -23,6 +23,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define __arm32__
 #endif
 
+#include <X11/Xfuncproto.h>
 #include "xorg-server.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -36,10 +37,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include "X.h"
+#include <X11/X.h>
 #define NEED_EVENTS
-#include "Xproto.h"
-#include "Xos.h"
+#include <X11/Xproto.h>
+#include <X11/Xos.h>
 #include "scrnintstr.h"
 #include "servermd.h"
 #define PSZ 8
@@ -53,20 +54,21 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "mipointer.h"
 #include "dixstruct.h"
 #include "propertyst.h"
-#include "Xatom.h"
+#include <X11/Xatom.h>
 #include "dix.h"
 #include "X11/keysym.h"
 #include "dixfontstr.h"
-#include "fontstruct.h"
+#include <X11/fonts/fontstruct.h>
 #include "cursorstr.h"
 #include "picturestr.h"
-#include "XKBstr.h"
+#include <X11/extensions/XKBstr.h>
 #include "inputstr.h"
 #include "randrstr.h"
 #include "mi.h"
 #include "fb.h"
 #include "micmap.h"
 #include "events.h"
+#include "eventstr.h"
 #include "exevents.h"
 #include "xserver-properties.h"
 #include "xkbsrv.h"
@@ -115,6 +117,8 @@ struct _rdpScreenInfoRec
   int depth;
   int bitsPerPixel;
   int sizeInBytes;
+  int sizeInBytesAlloc; /* size of current alloc frame buffer,
+                           always >= sizeInBytes */
   char* pfbMemory;
   Pixel blackPixel;
   Pixel whitePixel;
@@ -145,7 +149,7 @@ struct _rdpScreenInfoRec
   CompositeProcPtr Composite;
   GlyphsProcPtr Glyphs;
   /* Backing store procedures */
-  RestoreAreasProcPtr RestoreAreas;
+  //RestoreAreasProcPtr RestoreAreas;
 
   int rdp_width;
   int rdp_height;
@@ -450,7 +454,7 @@ rdpSpriteDeviceCursorInitialize(DeviceIntPtr pDev, ScreenPtr pScr);
 void
 rdpSpriteDeviceCursorCleanup(DeviceIntPtr pDev, ScreenPtr pScr);
 void
-PtrAddEvent(int buttonMask, int x, int y);
+PtrAddEvent(int buttonMask, int mode, double x, double y);
 void
 KbdAddEvent(int down, int param1, int param2, int param3, int param4);
 void
